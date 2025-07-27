@@ -2,8 +2,15 @@
   "name": "safe-tee",
   "version": "1.0.0",
   "description": "A standalone tee() function for Node.js readable streams",
+  "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    }
+  },
   "scripts": {
     "test": "node --test"
   },

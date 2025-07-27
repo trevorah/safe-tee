@@ -7,6 +7,6 @@
  * @param stream - The source readable stream to tee
  * @returns An array containing two readable streams
  */
-declare function tee<T = any>(stream: ReadableStream<T>): [ReadableStream<T>, ReadableStream<T>];
+export default function tee<T = any>(stream: ReadableStream<T>): [ReadableStream<T>, ReadableStream<T>];
 
-export = tee;
+export { tee };

@@ -1,6 +1,6 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert');
-const tee = require('./index.js');
+import { describe, it } from 'node:test';
+import assert from 'node:assert';
+import tee from './index.js';
 
 describe('safe-tee', () => {
   it('should tee a ReadableStream into two identical streams', async () => {

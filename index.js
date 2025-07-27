@@ -7,7 +7,7 @@
  * @param {ReadableStream} stream - The source readable stream to tee
  * @returns {[ReadableStream, ReadableStream]} An array containing two readable streams
  */
-function tee(stream) {
+export default function tee(stream) {
   if (!(stream instanceof ReadableStream)) {
     throw new TypeError('Argument must be a ReadableStream');
   }
@@ -16,5 +16,4 @@ function tee(stream) {
   return stream.tee();
 }
 
-module.exports = tee;
-module.exports.default = tee;
+export { tee };
