@@ -1,0 +1,22 @@
+{
+  "name": "safe-tee",
+  "version": "1.0.0",
+  "description": "A standalone tee() function for Node.js readable streams",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "stream",
+    "tee",
+    "readable",
+    "node",
+    "streams"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
