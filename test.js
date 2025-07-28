@@ -229,4 +229,111 @@ describe("safe-tee", () => {
     reader2.releaseLock();
     await stream2.cancel();
   });
+
+  it("should throw TypeError for invalid maxChunkDifference", () => {
+    const source = ReadableStream.from(["data"]);
+
+    assert.throws(
+      () => tee(source, { maxChunkDifference: -1 }),
+      {
+        name: "TypeError",
+        message: "maxChunkDifference must be a non-negative number",
+      }
+    );
+
+    assert.throws(
+      () => tee(source, { maxChunkDifference: "not a number" }),
+      {
+        name: "TypeError",
+        message: "maxChunkDifference must be a non-negative number",
+      }
+    );
+
+    assert.throws(
+      () => tee(source, { maxChunkDifference: NaN }),
+      {
+        name: "TypeError",
+        message: "maxChunkDifference must be a non-negative number",
+      }
+    );
+  });
+
+  it("should allow custom maxChunkDifference of 0 (lockstep reading)", async () => {
+    const data = ["chunk1", "chunk2", "chunk3", "chunk4"];
+    const source = ReadableStream.from(data);
+
+    const [stream1, stream2] = tee(source, { maxChunkDifference: 0 });
+
+    // With maxChunkDifference of 0, streams must read in lockstep
+    // Reading them in parallel should work
+    const [results1, results2] = await Promise.all([
+      Array.fromAsync(stream1),
+      Array.fromAsync(stream2)
+    ]);
+
+    assert.deepStrictEqual(results1, data);
+    assert.deepStrictEqual(results2, data);
+  });
+
+  it("should allow custom maxChunkDifference of 3", async () => {
+    const data = ["chunk1", "chunk2", "chunk3", "chunk4", "chunk5", "chunk6"];
+    const source = ReadableStream.from(data);
+
+    const [stream1, stream2] = tee(source, { maxChunkDifference: 3 });
+
+    // Create async iterators that we can control
+    const iter1 = stream1[Symbol.asyncIterator]();
+    const iter2 = stream2[Symbol.asyncIterator]();
+
+    // Read 4 chunks from stream1 (allowed with difference of 3)
+    const results1 = [];
+    for (let i = 0; i < 4; i++) {
+      const { value } = await iter1.next();
+      results1.push(value);
+    }
+    assert.deepStrictEqual(results1, ["chunk1", "chunk2", "chunk3", "chunk4"]);
+
+    // Now read 1 chunk from stream2 to allow stream1 to continue
+    const { value: value2 } = await iter2.next();
+    assert.strictEqual(value2, "chunk1");
+
+    // Now we can read more from stream1
+    const { value: value1 } = await iter1.next();
+    assert.strictEqual(value1, "chunk5");
+
+    // Clean up by reading remaining data in parallel
+    const remaining1 = [];
+    const remaining2 = [];
+    
+    await Promise.all([
+      (async () => {
+        for await (const chunk of iter1) {
+          remaining1.push(chunk);
+        }
+      })(),
+      (async () => {
+        for await (const chunk of iter2) {
+          remaining2.push(chunk);
+        }
+      })()
+    ]);
+
+    assert.deepStrictEqual(remaining1, ["chunk6"]);
+    assert.deepStrictEqual(remaining2, ["chunk2", "chunk3", "chunk4", "chunk5", "chunk6"]);
+  });
+
+  it("should allow unlimited difference with Infinity", async () => {
+    const data = Array.from({ length: 100 }, (_, i) => `chunk-${i}`);
+    const source = ReadableStream.from(data);
+
+    const [stream1, stream2] = tee(source, { maxChunkDifference: Infinity });
+
+    // With Infinity, stream1 can read all data without waiting for stream2
+    const results1 = await Array.fromAsync(stream1);
+    assert.strictEqual(results1.length, 100);
+
+    // Stream2 should still be able to read all data
+    const results2 = await Array.fromAsync(stream2);
+    assert.deepStrictEqual(results1, results2);
+  });
 });

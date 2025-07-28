@@ -6,19 +6,25 @@
  * ahead one stream can get compared to the other.
  *
  * @param {ReadableStream} stream - The source readable stream to tee
+ * @param {Object} [options] - Optional configuration
+ * @param {number} [options.maxChunkDifference=1] - Maximum difference in chunks between streams before applying backpressure
  * @returns {[ReadableStream, ReadableStream]} An array containing two readable streams
  */
-export default function tee(stream) {
+export default function tee(stream, options = {}) {
   if (!(stream instanceof ReadableStream)) {
     throw new TypeError("Argument must be a ReadableStream");
   }
 
-  const MAX_CHUNK_DIFFERENCE = 1;
+  const { maxChunkDifference = 1 } = options;
+
+  if (typeof maxChunkDifference !== "number" || maxChunkDifference < 0 || isNaN(maxChunkDifference)) {
+    throw new TypeError("maxChunkDifference must be a non-negative number");
+  }
 
   const [rawStream1, rawStream2] = stream.tee();
 
-  const chunkCount1 = 0;
-  const chunkCount2 = 0;
+  let chunkCount1 = 0;
+  let chunkCount2 = 0;
 
   let waiting1 = null;
   let waiting2 = null;
@@ -26,7 +32,7 @@ export default function tee(stream) {
   const transform1 = new TransformStream({
     async transform(chunk, controller) {
       // Check if we're too far ahead
-      if (chunkCount1 >= chunkCount2 + MAX_CHUNK_DIFFERENCE) {
+      if (chunkCount1 > chunkCount2 + maxChunkDifference) {
         // Wait for stream2 to catch up
         await new Promise((resolve) => {
           waiting1 = () => {
@@ -48,7 +54,7 @@ export default function tee(stream) {
   const transform2 = new TransformStream({
     async transform(chunk, controller) {
       // Check if we're too far ahead
-      if (chunkCount2 >= chunkCount1 + MAX_CHUNK_DIFFERENCE) {
+      if (chunkCount2 > chunkCount1 + maxChunkDifference) {
         // Wait for stream1 to catch up
         await new Promise((resolve) => {
           waiting2 = () => {
