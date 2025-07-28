@@ -1,7 +1,7 @@
 {
   "name": "safe-tee",
   "version": "1.0.0",
-  "description": "A standalone tee() function for Node.js readable streams",
+  "description": "A standalone tee() function for Web Streams API ReadableStream with backpressure control",
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
@@ -12,18 +12,43 @@
     }
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "stream",
+    "streams",
     "tee",
     "readable",
+    "readablestream",
+    "web-streams",
+    "whatwg-streams",
+    "backpressure",
+    "memory-safe",
     "node",
-    "streams"
+    "browser",
+    "deno"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trevorah/safe-tee.git"
+  },
+  "bugs": {
+    "url": "https://github.com/trevorah/safe-tee/issues"
+  },
+  "homepage": "https://github.com/trevorah/safe-tee#readme",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
