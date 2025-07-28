@@ -1,249 +1,230 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
-import tee from './index.js';
+import { describe, it } from "node:test";
+import assert from "node:assert";
+import tee from "./index.js";
 
-describe('safe-tee', () => {
-  it('should tee a ReadableStream into two identical streams when read in parallel', async () => {
-    const data = ['chunk1', 'chunk2', 'chunk3'];
+describe("safe-tee", () => {
+  it("should tee a ReadableStream into two identical streams when read in parallel", async () => {
+    const data = ["chunk1", "chunk2", "chunk3"];
     const source = ReadableStream.from(data);
 
     const [stream1, stream2] = tee(source);
-    
+
     // Read from both streams in parallel
     const [results1, results2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
+
     assert.deepStrictEqual(results1, data);
     assert.deepStrictEqual(results2, data);
     assert.deepStrictEqual(results1, results2);
   });
 
-  it('should throw TypeError for non-ReadableStream input', () => {
-    assert.throws(
-      () => tee('not a stream'),
-      {
-        name: 'TypeError',
-        message: 'Argument must be a ReadableStream'
-      }
-    );
+  it("should throw TypeError for non-ReadableStream input", () => {
+    assert.throws(() => tee("not a stream"), {
+      name: "TypeError",
+      message: "Argument must be a ReadableStream",
+    });
 
-    assert.throws(
-      () => tee(123),
-      TypeError
-    );
+    assert.throws(() => tee(123), TypeError);
 
-    assert.throws(
-      () => tee({}),
-      TypeError
-    );
+    assert.throws(() => tee({}), TypeError);
 
-    assert.throws(
-      () => tee(null),
-      TypeError
-    );
+    assert.throws(() => tee(null), TypeError);
   });
 
-  it('should work with async streams when read in parallel', async () => {
+  it("should work with async streams when read in parallel", async () => {
     let i = 0;
-    const expectedData = ['async-chunk-0', 'async-chunk-1', 'async-chunk-2'];
+    const expectedData = ["async-chunk-0", "async-chunk-1", "async-chunk-2"];
     const asyncSource = new ReadableStream({
       async pull(controller) {
         if (i < 3) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
           controller.enqueue(`async-chunk-${i++}`);
         } else {
           controller.close();
         }
-      }
+      },
     });
 
     const [stream1, stream2] = tee(asyncSource);
-    
-    // Read in parallel
+
     const [results1, results2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
+
     assert.deepStrictEqual(results1, expectedData);
     assert.deepStrictEqual(results2, expectedData);
   });
 
-  it('should handle empty streams', async () => {
+  it("should handle empty streams", async () => {
     const emptySource = ReadableStream.from([]);
 
     const [stream1, stream2] = tee(emptySource);
-    
+
     const reader1 = stream1.getReader();
     const reader2 = stream2.getReader();
-    
+
     const [result1, result2] = await Promise.all([
       reader1.read(),
-      reader2.read()
+      reader2.read(),
     ]);
-    
+
     assert.strictEqual(result1.done, true);
     assert.strictEqual(result1.value, undefined);
     assert.strictEqual(result2.done, true);
     assert.strictEqual(result2.value, undefined);
   });
 
-  it('should handle different data types', async () => {
+  it("should handle different data types", async () => {
     const mixedData = [
-      'string',
+      "string",
       42,
-      { obj: 'value' },
+      { obj: "value" },
       [1, 2, 3],
-      new Uint8Array([1, 2, 3])
+      new Uint8Array([1, 2, 3]),
     ];
-    
+
     const source = ReadableStream.from(mixedData);
 
     const [stream1, stream2] = tee(source);
-    
+
     const [results1, results2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
+
     assert.deepStrictEqual(results1, mixedData);
     assert.deepStrictEqual(results2, mixedData);
   });
 
-  it('should lock the original stream during teeing', async () => {
-    const source = ReadableStream.from(['data']);
+  it("should lock the original stream during teeing", async () => {
+    const source = ReadableStream.from(["data"]);
 
     // Tee the stream
     const [stream1, stream2] = tee(source);
 
     // Try to get a reader on the original stream - should throw
-    assert.throws(
-      () => source.getReader(),
-      {
-        name: 'TypeError'
-      }
-    );
+    assert.throws(() => source.getReader(), {
+      name: "TypeError",
+    });
   });
 
-  it('should handle large streams efficiently', async () => {
+  it("should handle large streams efficiently", async () => {
     const chunkCount = 1000;
     const chunks = Array.from({ length: chunkCount }, (_, i) => `chunk-${i}`);
-    
+
     const source = ReadableStream.from(chunks);
 
     const [stream1, stream2] = tee(source);
-    
+
     const [results1, results2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
+
     assert.strictEqual(results1.length, chunkCount);
     assert.strictEqual(results2.length, chunkCount);
     assert.deepStrictEqual(results1, results2);
   });
 
-  it('should handle interleaved reading between streams', async () => {
-    const source = ReadableStream.from(['A', 'B', 'C', 'D']);
+  it("should handle interleaved reading between streams", async () => {
+    const source = ReadableStream.from(["A", "B", "C", "D"]);
 
     const [stream1, stream2] = tee(source);
-    
+
     const reader1 = stream1.getReader();
     const reader2 = stream2.getReader();
 
     // Read alternately from streams in parallel
     const [chunk1, chunk2] = await Promise.all([
       reader1.read(),
-      reader2.read()
+      reader2.read(),
     ]);
-    
-    assert.strictEqual(chunk1.value, 'A');
-    assert.strictEqual(chunk2.value, 'A');
-    
+
+    assert.strictEqual(chunk1.value, "A");
+    assert.strictEqual(chunk2.value, "A");
+
     const [chunk3, chunk4] = await Promise.all([
       reader1.read(),
-      reader2.read()
+      reader2.read(),
     ]);
-    
-    assert.strictEqual(chunk3.value, 'B');
-    assert.strictEqual(chunk4.value, 'B');
-    
+
+    assert.strictEqual(chunk3.value, "B");
+    assert.strictEqual(chunk4.value, "B");
+
     // Read remaining chunks
     reader1.releaseLock();
     reader2.releaseLock();
     const [remaining1, remaining2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
-    assert.deepStrictEqual(remaining1, ['C', 'D']);
-    assert.deepStrictEqual(remaining2, ['C', 'D']);
+
+    assert.deepStrictEqual(remaining1, ["C", "D"]);
+    assert.deepStrictEqual(remaining2, ["C", "D"]);
   });
 
-  it('should respect backpressure with MAX_CHUNK_DIFFERENCE limit', async () => {
-    const data = ['chunk1', 'chunk2', 'chunk3', 'chunk4'];
+  it("should respect backpressure with MAX_CHUNK_DIFFERENCE limit", async () => {
+    const data = ["chunk1", "chunk2", "chunk3", "chunk4"];
     const source = ReadableStream.from(data);
 
     const [stream1, stream2] = tee(source);
-    
+
     const reader1 = stream1.getReader();
     const reader2 = stream2.getReader();
 
     // Read first chunk from stream1 only
     const firstChunk1 = await reader1.read();
-    assert.strictEqual(firstChunk1.value, 'chunk1');
+    assert.strictEqual(firstChunk1.value, "chunk1");
 
-    // Try to read second chunk from stream1 - due to backpressure, 
+    // Try to read second chunk from stream1 - due to backpressure,
     // this will wait until stream2 catches up
     const secondChunk1Promise = reader1.read();
-    
+
     // Give some time to ensure the read would complete if possible
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Now read from stream2 to allow stream1 to proceed
     const firstChunk2 = await reader2.read();
-    assert.strictEqual(firstChunk2.value, 'chunk1');
+    assert.strictEqual(firstChunk2.value, "chunk1");
 
     // Now stream1 should be able to complete its read
     const secondChunk1 = await secondChunk1Promise;
-    assert.strictEqual(secondChunk1.value, 'chunk2');
+    assert.strictEqual(secondChunk1.value, "chunk2");
 
     // Clean up by reading remaining chunks
     reader1.releaseLock();
     reader2.releaseLock();
     const [remaining1, remaining2] = await Promise.all([
       Array.fromAsync(stream1),
-      Array.fromAsync(stream2)
+      Array.fromAsync(stream2),
     ]);
-    
-    assert.deepStrictEqual(remaining1, ['chunk3', 'chunk4']);
-    assert.deepStrictEqual(remaining2, ['chunk2', 'chunk3', 'chunk4']);
+
+    assert.deepStrictEqual(remaining1, ["chunk3", "chunk4"]);
+    assert.deepStrictEqual(remaining2, ["chunk2", "chunk3", "chunk4"]);
   });
 
-  it('should handle stream cancellation', async () => {
-    const source = ReadableStream.from(['chunk1', 'chunk2', 'chunk3']);
+  it("should handle stream cancellation", async () => {
+    const source = ReadableStream.from(["chunk1", "chunk2", "chunk3"]);
 
     const [stream1, stream2] = tee(source);
-    
+
     const reader1 = stream1.getReader();
     const reader2 = stream2.getReader();
-    
+
     // Read one chunk from each
-    await Promise.all([
-      reader1.read(),
-      reader2.read()
-    ]);
-    
+    await Promise.all([reader1.read(), reader2.read()]);
+
     // Cancel one stream
     reader1.releaseLock();
     await stream1.cancel();
-    
+
     // The other stream should still be readable
     const { value } = await reader2.read();
-    assert.strictEqual(value, 'chunk2');
-    
+    assert.strictEqual(value, "chunk2");
+
     // Cancel the second stream
     reader2.releaseLock();
     await stream2.cancel();

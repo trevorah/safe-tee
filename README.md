@@ -11,15 +11,15 @@ npm install safe-tee
 ## Usage
 
 ```javascript
-const tee = require('safe-tee');
+const tee = require("safe-tee");
 
 // Create a ReadableStream
 const stream = new ReadableStream({
   start(controller) {
-    controller.enqueue('Hello');
-    controller.enqueue('World');
+    controller.enqueue("Hello");
+    controller.enqueue("World");
     controller.close();
-  }
+  },
 });
 
 // Tee the stream into two identical streams
@@ -39,25 +39,25 @@ async function readStream(stream, name) {
   }
 }
 
-readStream(stream1, 'Stream 1');
-readStream(stream2, 'Stream 2');
+readStream(stream1, "Stream 1");
+readStream(stream2, "Stream 2");
 ```
 
 ## Example with fetch()
 
 ```javascript
-const tee = require('safe-tee');
+const tee = require("safe-tee");
 
 async function processResponse() {
-  const response = await fetch('https://example.com/data');
+  const response = await fetch("https://example.com/data");
   const [stream1, stream2] = tee(response.body);
-  
+
   // Process the same data in two different ways
   const text = await new Response(stream1).text();
   const arrayBuffer = await new Response(stream2).arrayBuffer();
-  
-  console.log('Text length:', text.length);
-  console.log('ArrayBuffer size:', arrayBuffer.byteLength);
+
+  console.log("Text length:", text.length);
+  console.log("ArrayBuffer size:", arrayBuffer.byteLength);
 }
 ```
 
@@ -84,16 +84,17 @@ Creates a tee of a ReadableStream, returning an array of two new ReadableStream 
 TypeScript definitions are included:
 
 ```typescript
-import tee from 'safe-tee';
+import tee from "safe-tee";
 
 const source: ReadableStream<string> = new ReadableStream({
   start(controller) {
-    controller.enqueue('typed');
+    controller.enqueue("typed");
     controller.close();
-  }
+  },
 });
 
-const [stream1, stream2]: [ReadableStream<string>, ReadableStream<string>] = tee(source);
+const [stream1, stream2]: [ReadableStream<string>, ReadableStream<string>] =
+  tee(source);
 ```
 
 ## License
